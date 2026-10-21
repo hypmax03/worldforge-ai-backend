@@ -1,6 +1,11 @@
 import type { Request, Response } from "express";
+import mongoose from "mongoose";
 import { Character } from "../models/Character.js";
+import { City } from "../models/City.js";
+import { Kingdom } from "../models/Kingdom.js";
+import { Relationship } from "../models/Relationship.js";
 import { World } from "../models/World.js";
+import { pickFields } from "../utils/pickFields.js";
 
 async function verifyWorldOwnership(worldId: string, userId: string) {
   return World.findOne({ _id: worldId, ownerId: userId, isDeleted: false });
@@ -34,6 +39,38 @@ export async function createCharacter(req: Request, res: Response) {
 
     if (!name) {
       return res.status(400).json({ message: "Name is required" });
+    }
+
+    if (kingdomId != null) {
+      if (typeof kingdomId !== "string" || !mongoose.isObjectIdOrHexString(kingdomId)) {
+        return res.status(400).json({ message: "Invalid kingdom" });
+      }
+
+      const kingdom = await Kingdom.findOne({
+        _id: kingdomId,
+        ownerId: req.user.id,
+        worldId: req.params.worldId,
+        isDeleted: false,
+      });
+      if (!kingdom) {
+        return res.status(400).json({ message: "Invalid kingdom" });
+      }
+    }
+
+    if (cityId != null) {
+      if (typeof cityId !== "string" || !mongoose.isObjectIdOrHexString(cityId)) {
+        return res.status(400).json({ message: "Invalid city" });
+      }
+
+      const city = await City.findOne({
+        _id: cityId,
+        ownerId: req.user.id,
+        worldId: req.params.worldId,
+        isDeleted: false,
+      });
+      if (!city) {
+        return res.status(400).json({ message: "Invalid city" });
+      }
     }
 
     const character = await Character.create({
@@ -119,9 +156,80 @@ export async function updateCharacter(req: Request, res: Response) {
       return res.status(400).json({ message: "Character id is required" });
     }
 
+    const updates = pickFields<{
+      name: string;
+      age: number;
+      gender: string;
+      race: string;
+      occupation: string;
+      isAlive: boolean;
+      biography: string;
+      kingdomId: string | null;
+      cityId: string | null;
+    }>(req.body, [
+      "name",
+      "age",
+      "gender",
+      "race",
+      "occupation",
+      "isAlive",
+      "biography",
+      "kingdomId",
+      "cityId",
+    ]);
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
+    const existingCharacter = await Character.findOne({
+      _id: req.params.id,
+      ownerId: req.user.id,
+      isDeleted: false,
+    });
+
+    if (!existingCharacter) {
+      return res.status(404).json({ message: "Character not found" });
+    }
+
+    if (updates.kingdomId != null) {
+      if (
+        typeof updates.kingdomId !== "string" ||
+        !mongoose.isObjectIdOrHexString(updates.kingdomId)
+      ) {
+        return res.status(400).json({ message: "Invalid kingdom" });
+      }
+
+      const kingdom = await Kingdom.findOne({
+        _id: updates.kingdomId,
+        ownerId: req.user.id,
+        worldId: existingCharacter.worldId,
+        isDeleted: false,
+      });
+      if (!kingdom) {
+        return res.status(400).json({ message: "Invalid kingdom" });
+      }
+    }
+
+    if (updates.cityId != null) {
+      if (typeof updates.cityId !== "string" || !mongoose.isObjectIdOrHexString(updates.cityId)) {
+        return res.status(400).json({ message: "Invalid city" });
+      }
+
+      const city = await City.findOne({
+        _id: updates.cityId,
+        ownerId: req.user.id,
+        worldId: existingCharacter.worldId,
+        isDeleted: false,
+      });
+      if (!city) {
+        return res.status(400).json({ message: "Invalid city" });
+      }
+    }
+
     const character = await Character.findOneAndUpdate(
       { _id: req.params.id, ownerId: req.user.id, isDeleted: false },
-      { $set: req.body },
+      { $set: updates },
       { new: true, runValidators: true }
     );
 
@@ -155,6 +263,15 @@ export async function deleteCharacter(req: Request, res: Response) {
     if (!character) {
       return res.status(404).json({ message: "Character not found" });
     }
+
+    await Relationship.updateMany(
+      {
+        ownerId: req.user.id,
+        isDeleted: false,
+        $or: [{ fromId: character._id }, { toId: character._id }],
+      },
+      { $set: { isDeleted: true } }
+    );
 
     return res.status(200).json({ message: "Character deleted successfully" });
   } catch (error) {

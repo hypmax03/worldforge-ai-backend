@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { World } from "../models/World.js";
+import { pickFields } from "../utils/pickFields.js";
 
 export async function createWorld(req: Request, res: Response) {
   try {
@@ -80,9 +81,29 @@ export async function updateWorld(req: Request, res: Response) {
       return res.status(400).json({ message: "World id is required" });
     }
 
+    const updates = pickFields<{
+      name: string;
+      genre: string;
+      description: string;
+      technologyLevel: string;
+      magicLevel: string;
+      historicalStartingPoint: string;
+    }>(req.body, [
+      "name",
+      "genre",
+      "description",
+      "technologyLevel",
+      "magicLevel",
+      "historicalStartingPoint",
+    ]);
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
     const world = await World.findOneAndUpdate(
       { _id: req.params.id, ownerId: req.user.id, isDeleted: false },
-      { $set: req.body },
+      { $set: updates },
       { new: true, runValidators: true }
     );
 

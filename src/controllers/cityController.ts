@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { City } from "../models/City.js";
 import { Kingdom } from "../models/Kingdom.js";
+import { pickFields } from "../utils/pickFields.js";
 
 async function verifyKingdomOwnership(kingdomId: string, userId: string) {
   return Kingdom.findOne({ _id: kingdomId, ownerId: userId, isDeleted: false });
@@ -103,9 +104,19 @@ export async function updateCity(req: Request, res: Response) {
       return res.status(400).json({ message: "City id is required" });
     }
 
+    const updates = pickFields<{
+      name: string;
+      government: string;
+      population: number;
+    }>(req.body, ["name", "government", "population"]);
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
     const city = await City.findOneAndUpdate(
       { _id: req.params.id, ownerId: req.user.id, isDeleted: false },
-      { $set: req.body },
+      { $set: updates },
       { new: true, runValidators: true }
     );
 

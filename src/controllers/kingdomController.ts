@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import { Kingdom } from "../models/Kingdom.js";
+import { Relationship } from "../models/Relationship.js";
 import { World } from "../models/World.js";
+import { pickFields } from "../utils/pickFields.js";
 
 async function verifyWorldOwnership(worldId: string, userId: string) {
   return World.findOne({ _id: worldId, ownerId: userId, isDeleted: false });
@@ -102,9 +104,19 @@ export async function updateKingdom(req: Request, res: Response) {
       return res.status(400).json({ message: "Kingdom id is required" });
     }
 
+    const updates = pickFields<{
+      name: string;
+      government: string;
+      population: number;
+    }>(req.body, ["name", "government", "population"]);
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
     const kingdom = await Kingdom.findOneAndUpdate(
       { _id: req.params.id, ownerId: req.user.id, isDeleted: false },
-      { $set: req.body },
+      { $set: updates },
       { new: true, runValidators: true }
     );
 
@@ -138,6 +150,15 @@ export async function deleteKingdom(req: Request, res: Response) {
     if (!kingdom) {
       return res.status(404).json({ message: "Kingdom not found" });
     }
+
+    await Relationship.updateMany(
+      {
+        ownerId: req.user.id,
+        isDeleted: false,
+        $or: [{ fromId: kingdom._id }, { toId: kingdom._id }],
+      },
+      { $set: { isDeleted: true } }
+    );
 
     return res.status(200).json({ message: "Kingdom deleted successfully" });
   } catch (error) {

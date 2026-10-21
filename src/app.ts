@@ -7,6 +7,12 @@ import worldRoutes from "./routes/worldRoutes.js";
 import kingdomRoutes from "./routes/kingdomRoutes.js";
 import cityRoutes from "./routes/cityRoutes.js";
 import characterRoutes from "./routes/characterRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
+import kingdomAiRoutes from "./routes/kingdomAiRoutes.js";
+import {
+  relationshipRoutes,
+  worldRelationshipRoutes,
+} from "./routes/relationshipRoutes.js";
 
 dotenv.config();
 
@@ -19,8 +25,15 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/worlds", worldRoutes);
 app.use("/api/worlds/:worldId/kingdoms", kingdomRoutes);
+app.use("/api/kingdoms", kingdomRoutes);
 app.use("/api/kingdoms/:kingdomId/cities", cityRoutes);
+app.use("/api/cities", cityRoutes);
 app.use("/api/worlds/:worldId/characters", characterRoutes);
+app.use("/api/characters", characterRoutes);
+app.use("/api/kingdoms/:kingdomId/ai", kingdomAiRoutes);
+app.use("/api/worlds/:worldId/ai", aiRoutes);
+app.use("/api/worlds/:worldId/relationships", worldRelationshipRoutes);
+app.use("/api/relationships", relationshipRoutes);
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "ok" });

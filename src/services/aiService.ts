@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
+import { env } from "../config/env.js";
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 
@@ -10,7 +11,7 @@ function getClient(): GoogleGenAI {
     return aiClient;
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not defined in environment variables");
   }
@@ -25,7 +26,7 @@ export async function generateStructured<T>(options: {
   systemInstruction?: string;
 }): Promise<T> {
   const client = getClient();
-  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+  const model = env.GEMINI_MODEL || DEFAULT_MODEL;
   const config = {
     responseMimeType: "application/json",
     responseJsonSchema: z.toJSONSchema(options.schema),

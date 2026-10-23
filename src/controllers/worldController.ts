@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { World } from "../models/World.js";
 import { pickFields } from "../utils/pickFields.js";
+import { softDeleteWorld } from "../services/softDelete.js";
 
 export async function createWorld(req: Request, res: Response) {
   try {
@@ -124,15 +125,11 @@ export async function deleteWorld(req: Request, res: Response) {
       return res.status(401).json({ message: "Not authorized" });
     }
 
-    if (!req.params.id) {
+    if (typeof req.params.id !== "string") {
       return res.status(400).json({ message: "World id is required" });
     }
 
-    const world = await World.findOneAndUpdate(
-      { _id: req.params.id, ownerId: req.user.id, isDeleted: false },
-      { $set: { isDeleted: true } },
-      { new: true }
-    );
+    const world = await softDeleteWorld(req.params.id, req.user.id);
 
     if (!world) {
       return res.status(404).json({ message: "World not found" });

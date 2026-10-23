@@ -26,6 +26,8 @@ export interface IRelationship extends Document {
   type: RelationshipType;
   notes: string;
   isDeleted: boolean;
+  deletedAt: Date | null;
+  deletedWith: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +88,14 @@ const relationshipSchema = new Schema<IRelationship>(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    deletedWith: {
+      type: Schema.Types.ObjectId,
+      default: null,
     },
   },
   {

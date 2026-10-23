@@ -243,7 +243,7 @@ export async function deleteRelationship(req: Request, res: Response) {
         ownerId: req.user.id,
         isDeleted: false,
       },
-      { $set: { isDeleted: true } },
+      { $set: { isDeleted: true, deletedAt: new Date(), deletedWith: null } },
       { new: true }
     );
 

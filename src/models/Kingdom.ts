@@ -7,10 +7,17 @@ export interface IKingdom extends Document {
   government: string;
   rulerId: Types.ObjectId | null;
   capitalCityId: Types.ObjectId | null;
+  mapX: number | null;
+  mapY: number | null;
   population: number;
+  food: number;
+  stability: number;
+  droughtYearsLeft: number;
   allyIds: Types.ObjectId[];
   enemyIds: Types.ObjectId[];
   isDeleted: boolean;
+  deletedAt: Date | null;
+  deletedWith: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,9 +53,40 @@ const kingdomSchema = new Schema<IKingdom>(
       ref: "City",
       default: null,
     },
+    mapX: {
+      type: Number,
+      default: null,
+      min: 0,
+      max: 1000,
+      validate: (value: number | null) => value === null || Number.isFinite(value),
+    },
+    mapY: {
+      type: Number,
+      default: null,
+      min: 0,
+      max: 1000,
+      validate: (value: number | null) => value === null || Number.isFinite(value),
+    },
     population: {
       type: Number,
       default: 0,
+    },
+    food: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    stability: {
+      type: Number,
+      default: 70,
+      min: 0,
+      max: 100,
+    },
+    droughtYearsLeft: {
+      type: Number,
+      default: 0,
+      min: 0,
+      validate: Number.isInteger,
     },
     allyIds: [
       {
@@ -65,6 +103,14 @@ const kingdomSchema = new Schema<IKingdom>(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    deletedWith: {
+      type: Schema.Types.ObjectId,
+      default: null,
     },
   },
   {

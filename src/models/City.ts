@@ -7,7 +7,11 @@ export interface ICity extends Document {
   name: string;
   population: number;
   government: string;
+  mapX: number | null;
+  mapY: number | null;
   isDeleted: boolean;
+  deletedAt: Date | null;
+  deletedWith: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,9 +46,31 @@ const citySchema = new Schema<ICity>(
       type: String,
       default: "",
     },
+    mapX: {
+      type: Number,
+      default: null,
+      min: 0,
+      max: 1000,
+      validate: (value: number | null) => value === null || Number.isFinite(value),
+    },
+    mapY: {
+      type: Number,
+      default: null,
+      min: 0,
+      max: 1000,
+      validate: (value: number | null) => value === null || Number.isFinite(value),
+    },
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    deletedWith: {
+      type: Schema.Types.ObjectId,
+      default: null,
     },
   },
   {

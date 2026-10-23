@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import { City } from "../models/City.js";
 import { Kingdom } from "../models/Kingdom.js";
+import { softDeleteCity } from "../services/softDelete.js";
+import { World } from "../models/World.js";
 import { pickFields } from "../utils/pickFields.js";
 
 async function verifyKingdomOwnership(kingdomId: string, userId: string) {
@@ -67,6 +69,37 @@ export async function getCities(req: Request, res: Response) {
   }
 }
 
+export async function getWorldCities(req: Request, res: Response) {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    if (!req.params.worldId || typeof req.params.worldId !== "string") {
+      return res.status(400).json({ message: "World id is required" });
+    }
+
+    const world = await World.findOne({
+      _id: req.params.worldId,
+      ownerId: req.user.id,
+      isDeleted: false,
+    });
+    if (!world) {
+      return res.status(404).json({ message: "World not found" });
+    }
+
+    const cities = await City.find({
+      worldId: world._id,
+      ownerId: req.user.id,
+      isDeleted: false,
+    });
+    return res.status(200).json(cities);
+  } catch (error) {
+    console.error("Get world cities error:", error);
+    return res.status(500).json({ message: "Server error fetching cities" });
+  }
+}
+
 export async function getCityById(req: Request, res: Response) {
   try {
     if (!req.user?.id) {
@@ -108,7 +141,22 @@ export async function updateCity(req: Request, res: Response) {
       name: string;
       government: string;
       population: number;
-    }>(req.body, ["name", "government", "population"]);
+      mapX: number | null;
+      mapY: number | null;
+    }>(req.body, ["name", "government", "population", "mapX", "mapY"]);
+
+    for (const coordinate of ["mapX", "mapY"] as const) {
+      if (
+        Object.prototype.hasOwnProperty.call(updates, coordinate) &&
+        updates[coordinate] !== null &&
+        (typeof updates[coordinate] !== "number" ||
+          !Number.isFinite(updates[coordinate]) ||
+          updates[coordinate] < 0 ||
+          updates[coordinate] > 1000)
+      ) {
+        return res.status(400).json({ message: `Invalid ${coordinate}` });
+      }
+    }
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ message: "No valid fields to update" });
@@ -141,11 +189,7 @@ export async function deleteCity(req: Request, res: Response) {
       return res.status(400).json({ message: "City id is required" });
     }
 
-    const city = await City.findOneAndUpdate(
-      { _id: req.params.id, ownerId: req.user.id, isDeleted: false },
-      { $set: { isDeleted: true } },
-      { new: true }
-    );
+    const city = await softDeleteCity(req.params.id, req.user.id);
 
     if (!city) {
       return res.status(404).json({ message: "City not found" });

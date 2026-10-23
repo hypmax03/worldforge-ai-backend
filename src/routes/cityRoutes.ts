@@ -7,13 +7,14 @@ import {
   deleteCity,
 } from "../controllers/cityController.js";
 import { protect } from "../middleware/auth.js";
+import { validateObjectIds } from "../middleware/validateObjectId.js";
 
 const router = Router({ mergeParams: true });
 
-router.post("/", protect, createCity);
-router.get("/", protect, getCities);
-router.get("/:id", protect, getCityById);
-router.put("/:id", protect, updateCity);
-router.delete("/:id", protect, deleteCity);
+router.post("/", protect, validateObjectIds("kingdomId"), createCity);
+router.get("/", protect, validateObjectIds("kingdomId"), getCities);
+router.get("/:id", protect, validateObjectIds("kingdomId", "id"), getCityById);
+router.put("/:id", protect, validateObjectIds("kingdomId", "id"), updateCity);
+router.delete("/:id", protect, validateObjectIds("kingdomId", "id"), deleteCity);
 
 export default router;

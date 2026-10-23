@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { Character } from "../models/Character.js";
 import { City } from "../models/City.js";
 import { Kingdom } from "../models/Kingdom.js";
+import { softDeleteCharacter } from "../services/softDelete.js";
 import { Relationship } from "../models/Relationship.js";
 import { World } from "../models/World.js";
 import { pickFields } from "../utils/pickFields.js";
@@ -254,24 +255,11 @@ export async function deleteCharacter(req: Request, res: Response) {
       return res.status(400).json({ message: "Character id is required" });
     }
 
-    const character = await Character.findOneAndUpdate(
-      { _id: req.params.id, ownerId: req.user.id, isDeleted: false },
-      { $set: { isDeleted: true } },
-      { new: true }
-    );
+    const character = await softDeleteCharacter(req.params.id, req.user.id);
 
     if (!character) {
       return res.status(404).json({ message: "Character not found" });
     }
-
-    await Relationship.updateMany(
-      {
-        ownerId: req.user.id,
-        isDeleted: false,
-        $or: [{ fromId: character._id }, { toId: character._id }],
-      },
-      { $set: { isDeleted: true } }
-    );
 
     return res.status(200).json({ message: "Character deleted successfully" });
   } catch (error) {

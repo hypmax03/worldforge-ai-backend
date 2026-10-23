@@ -17,6 +17,8 @@ export interface ICharacter extends Document {
   enemyIds: Types.ObjectId[];
   biography: string;
   isDeleted: boolean;
+  deletedAt: Date | null;
+  deletedWith: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -98,6 +100,14 @@ const characterSchema = new Schema<ICharacter>(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    deletedWith: {
+      type: Schema.Types.ObjectId,
+      default: null,
     },
   },
   {

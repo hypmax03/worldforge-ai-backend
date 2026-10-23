@@ -7,8 +7,11 @@ export interface IWorld extends Document {
   technologyLevel: string;
   magicLevel: string;
   historicalStartingPoint: string;
+  currentYear: number;
   ownerId: Types.ObjectId;
   isDeleted: boolean;
+  deletedAt: Date | null;
+  deletedWith: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +53,11 @@ const worldSchema = new Schema<IWorld>(
       type: String,
       default: "",
     },
+    currentYear: {
+      type: Number,
+      default: 0,
+      validate: Number.isInteger,
+    },
     ownerId: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -58,6 +66,14 @@ const worldSchema = new Schema<IWorld>(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    deletedWith: {
+      type: Schema.Types.ObjectId,
+      default: null,
     },
   },
   {

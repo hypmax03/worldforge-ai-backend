@@ -1,11 +1,9 @@
 import jwt from "jsonwebtoken";
+import { env } from "../config/env.js";
 
 export function generateToken(userId: string): string {
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error("JWT_SECRET is not defined in environment variables");
-  }
-
-  return jwt.sign({ id: userId }, secret, { expiresIn: "7d" });
+  return jwt.sign({ id: userId }, env.JWT_SECRET, {
+    algorithm: "HS256",
+    expiresIn: "7d",
+  });
 }
